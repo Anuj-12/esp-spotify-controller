@@ -4,60 +4,83 @@
 #include <SPI.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <Arduino_JSON.h>
+#include <HTTPClient.h>
+
+// Spotify Controller
+#define HOST_NAME "https://api.spotify.com."
 
 // WiFi credentials 
-#define SSID "Anuj's Galaxy M31"
-#define PASS "VadaPavGr8"
+#define SSID "wifi5"
+#define PASS "12341234"
 
-// OLED properties
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-#define OLED_RESET -1
-#define SCREEN_ADDRESS 0x3C
+// OLED display configuration constants
+#define SCREEN_WIDTH 128    // OLED display width in pixels
+#define SCREEN_HEIGHT 64    // OLED display height in pixels
+#define OLED_RESET -1      // Reset pin (-1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C // I2C address of the OLED display
 
-// Open source Network Time Protocol server
+// NTP (Network Time Protocol) configuration
 const char* ntpServer = "pool.ntp.org";
-const long gmtOffsetSec = 19800;  // IST is UTC + 5:30
-const int dayLightOffsetSec = 0;  // None for India
+const long gmtOffsetSec = 19800;  // IST is UTC + 5:30 (5.5 hours * 3600 seconds)
+const int dayLightOffsetSec = 0;  // No daylight savings in India
 
+// Timing variables for display refresh
 unsigned long prevMillis = 0;
 
-unsigned long buttPrevMill = 0;
-int checkCount = 0;
-int buttPin = 2;
-int mode = 0;
+// Button control variables
+unsigned long buttPrevMill = 0;  // For button debouncing
+int checkCount = 0;              // Display refresh counter
+int buttPin = 2;                 // Mode selection button pin
+int mode = 0;                    // Current display mode
 
+// Function button variables
 unsigned long funcPrevMill = 0;
-int funcPin = 25; 
-int funcMode = 0;
+int funcPin = 25;               // Function button pin
+int funcMode = 0;               // Function mode state
 
-unsigned long potMill = 0;
-unsigned long duckingMill = 0;
-unsigned long funcMill = 0;
-bool timerOn = false;
-int hourVal = 0;
-int minVal = 0;
-int potPin = 33;
-int potVal = 0;
+// Timer and potentiometer variables
+unsigned long potMill = 0;       // For potentiometer reading intervals
+unsigned long duckingMill = 0;   // For timer countdown
+unsigned long funcMill = 0;      // For function button debouncing
+bool timerOn = false;           // Timer state
+int hourVal = 0;                // Timer hours
+int minVal = 0;                 // Timer minutes
+int potPin = 33;                // Potentiometer input pin
+int potVal = 0;                 // Current potentiometer value
+
+// Buzzer pin for timer alarm
 int buzzPin = 14;
 
-
-// Created the oled object
+// Create the OLED display object
+WiFiClient client;
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
+// HTTP Client
+
+/**
+ * Initial setup function
+ * - Initializes serial communication
+ * - Sets up OLED display
+ * - Connects to WiFi network
+ * - Configures NTP for time synchronization
+ * - Sets up GPIO pins for buttons, potentiometer, and buzzer
+ */
 void setup(){
   Serial.begin(9600);
 
-  // Initializing the OLED object
+  // Initialize OLED display with error checking
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)){
     Serial.println("SSD1306 allocation failed!");
-    // loop forever
+    // loop forever if display initialization fails
     while (true){}
   }
 
+  // Configure WiFi in station mode and disconnect from any previous connections
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
 
+  // Display WiFi connection status on OLED
   display.clearDisplay();
   display.setTextSize(2);
   display.setTextColor(WHITE);
@@ -65,6 +88,7 @@ void setup(){
   display.print("Waiting \nfor WiFi \nconnection");
   display.display();
   
+  // Connect to WiFi with status updates
   Serial.println("*******************************************************");
   Serial.print("Attempting to connect to the WiFi network : "); Serial.println(SSID);
   WiFi.begin(SSID, PASS);
@@ -75,17 +99,24 @@ void setup(){
   Serial.println();
   Serial.println("WiFi connected successfully!");
 
-  // Set time according to the NTP server 
+  // Initialize NTP time synchronization
   configTime(gmtOffsetSec, dayLightOffsetSec, ntpServer);
 
-
-  pinMode(buttPin, INPUT_PULLDOWN);
-  pinMode(potPin, INPUT);
-  pinMode(buzzPin, OUTPUT);
-  pinMode(funcPin, INPUT_PULLDOWN);
-  digitalWrite(buzzPin, LOW);
+  // Configure GPIO pins
+  pinMode(buttPin, INPUT_PULLDOWN);      // Mode selection button
+  pinMode(potPin, INPUT);                // Potentiometer for timer setting
+  pinMode(buzzPin, OUTPUT);              // Buzzer output
+  pinMode(funcPin, INPUT_PULLDOWN);      // Function button
+  digitalWrite(buzzPin, LOW);            // Ensure buzzer is off initially
 }
 
+/**
+ * Displays the current time and date on the OLED screen
+ * Updates every minute and formats the display with:
+ * - Hours and minutes in 12-hour format
+ * - AM/PM indicator
+ * - Date and day of the week
+ */
 void displayTime(){
   unsigned long currentMillis = millis();
   struct tm timeInfo;
@@ -119,6 +150,13 @@ void displayTime(){
   }
 }
 
+/**
+ * Handles the timer functionality
+ * - Uses potentiometer input to set timer duration
+ * - Displays countdown when timer is active
+ * - Triggers buzzer when timer reaches zero
+ * - Updates display every minute
+ */
 void displayTimer(){
 
   unsigned long currentMillis = millis();
@@ -191,10 +229,18 @@ void displayTimer(){
   Serial.println(minVal);
 }
 
+/**
+ * Main program loop
+ * - Handles button inputs for mode switching
+ * - Manages timer state
+ * - Updates display based on current mode
+ * - Reads potentiometer value for timer setting
+ */
 void loop(){
 
   int buttonState = digitalRead(buttPin);
   int funcState = digitalRead(funcPin);
+  Serial.print(funcState);Serial.print(" ");Serial.println(buttonState);
   unsigned long buttCurrMill = millis();
 
   if(!timerOn){
@@ -238,4 +284,9 @@ void loop(){
       mode = 0;
     }
   }
+}
+
+void spotifyController(){
+  HTTPClient http;
+  http.begin(client, HOST_NAME);
 }

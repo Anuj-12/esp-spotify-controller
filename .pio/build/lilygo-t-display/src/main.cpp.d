@@ -210,4 +210,7 @@
  /home/anuj/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal-log.h \
  /home/anuj/.platformio/packages/framework-arduinoespressif32/cores/esp32/HardwareI2C.h \
  .pio/libdeps/lilygo-t-display/Adafruit\ BusIO/Adafruit_SPIDevice.h \
- .pio/libdeps/lilygo-t-display/Adafruit\ SSD1306/Adafruit_SSD1306.h
+ .pio/libdeps/lilygo-t-display/Adafruit\ SSD1306/Adafruit_SSD1306.h \
+ .pio/libdeps/lilygo-t-display/Arduino_JSON/src/Arduino_JSON.h \
+ .pio/libdeps/lilygo-t-display/Arduino_JSON/src/JSON.h \
+ .pio/libdeps/lilygo-t-display/Arduino_JSON/src/JSONVar.h
